@@ -52,7 +52,7 @@ public class Configuration {
                 String line;
                 int lpos;
                 while ((line = stream.readLine()) != null) {
-                    lpos = line.lastIndexOf('=');
+                    lpos = line.indexOf('=');
                     if (lpos > 0)
                         configValues.put(line.substring(0, lpos), line.substring(lpos + 1));
                 }
