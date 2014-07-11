@@ -32,6 +32,7 @@ public class Configuration {
     public Configuration(File dataFolder, String fileName) {
         this.configValues = new HashMap<>();
         this.dataFolder = dataFolder;
+		dataFolder.mkdirs();
         this.dataFile = fileName;
         load();
     }
