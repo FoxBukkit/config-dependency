@@ -18,23 +18,57 @@ package com.foxelbox.dependencies.config;
 
 import java.io.*;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
-public class Configuration {
-    private final HashMap<String,String> configValues;
+public class Configuration extends ConcurrentHashMap<String, String> {
     private final File dataFolder;
     private final String dataFile;
+    private final Object lockObject;
+    private final Set<OnChangeHook> hooks;
+    private boolean disableHooks;
 
     public Configuration(File dataFolder) {
         this(dataFolder, "config.txt");
     }
 
     public Configuration(File dataFolder, String fileName) {
-        this.configValues = new HashMap<>();
         this.dataFolder = dataFolder;
 		dataFolder.mkdirs();
         this.dataFile = fileName;
+        this.hooks = new HashSet<>();
+        this.lockObject = new Object();
+        this.disableHooks = false;
         load();
+    }
+
+    public interface OnChangeHook {
+        /**
+         * Entry change delegate functional interface
+         * @param key Key of changed entry
+         * @param value Value of changed entry (null if removed)
+         */
+        void onEntryChanged(String key, String value);
+    }
+    public void addOnChangeHook(OnChangeHook hook)  {
+        synchronized (lockObject) {
+            this.hooks.add(hook);
+        }
+    }
+
+    private void triggerChange(String key, String value) {
+        synchronized (lockObject) {
+            if (this.disableHooks) {
+                return;
+            }
+            for (OnChangeHook hook : hooks) {
+                hook.onEntryChanged(key, value);
+            }
+        }
+
+        this.save();
     }
 
     public FileReader makeReader(String file) throws FileNotFoundException {
@@ -46,29 +80,33 @@ public class Configuration {
     }
 
     public void load() {
-        synchronized (configValues) {
-            configValues.clear();
+        synchronized (lockObject) {
+            this.disableHooks = true;
+            this.clear();
             try {
                 BufferedReader stream = new BufferedReader(makeReader(dataFile));
                 String line;
                 int lpos;
                 while ((line = stream.readLine()) != null) {
                     lpos = line.indexOf('=');
-                    if (lpos > 0)
-                        configValues.put(line.substring(0, lpos), line.substring(lpos + 1));
+                    if (lpos > 0) {
+                        this.put(line.substring(0, lpos), line.substring(lpos + 1));
+                    }
                 }
                 stream.close();
             } catch (Exception e) {
                 e.printStackTrace();
             }
+            this.disableHooks = false;
         }
     }
 
     public void save() {
-        synchronized (configValues) {
+        synchronized (lockObject) {
+            this.disableHooks = true;
             try {
                 PrintWriter stream = new PrintWriter(makeWriter(dataFile));
-                for (Map.Entry<String, String> configEntry : configValues.entrySet()) {
+                for (Map.Entry<String, String> configEntry : this.entrySet()) {
                     stream.println(configEntry.getKey() + "=" + configEntry.getValue());
                 }
                 stream.close();
@@ -76,15 +114,16 @@ public class Configuration {
             catch(Exception e){
                 e.printStackTrace();
             }
+            this.disableHooks = false;
         }
     }
 
     public String getValue(String key, String def) {
-        synchronized (configValues) {
-            if (configValues.containsKey(key)) {
-                return configValues.get(key);
+        synchronized (lockObject) {
+            if (this.containsKey(key)) {
+                return this.get(key);
             }
-            configValues.put(key, def);
+            this.put(key, def);
         }
         save();
         return def;
