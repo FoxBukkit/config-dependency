@@ -17,10 +17,7 @@
 package com.foxelbox.dependencies.config;
 
 import java.io.*;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Configuration extends ConcurrentHashMap<String, String> {
@@ -28,7 +25,6 @@ public class Configuration extends ConcurrentHashMap<String, String> {
     private final String dataFile;
     private final Object lockObject;
     private final Set<OnChangeHook> hooks;
-    private boolean disableHooks;
 
     public Configuration(File dataFolder) {
         this(dataFolder, "config.txt");
@@ -40,7 +36,6 @@ public class Configuration extends ConcurrentHashMap<String, String> {
         this.dataFile = fileName;
         this.hooks = new HashSet<>();
         this.lockObject = new Object();
-        this.disableHooks = false;
         load();
     }
 
@@ -60,9 +55,6 @@ public class Configuration extends ConcurrentHashMap<String, String> {
 
     private void triggerChange(String key, String value) {
         synchronized (lockObject) {
-            if (this.disableHooks) {
-                return;
-            }
             for (OnChangeHook hook : hooks) {
                 hook.onEntryChanged(key, value);
             }
@@ -81,7 +73,6 @@ public class Configuration extends ConcurrentHashMap<String, String> {
 
     public void load() {
         synchronized (lockObject) {
-            this.disableHooks = true;
             this.clear();
             try {
                 BufferedReader stream = new BufferedReader(makeReader(dataFile));
@@ -97,13 +88,11 @@ public class Configuration extends ConcurrentHashMap<String, String> {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            this.disableHooks = false;
         }
     }
 
     public void save() {
         synchronized (lockObject) {
-            this.disableHooks = true;
             try {
                 PrintWriter stream = new PrintWriter(makeWriter(dataFile));
                 for (Map.Entry<String, String> configEntry : this.entrySet()) {
@@ -114,7 +103,29 @@ public class Configuration extends ConcurrentHashMap<String, String> {
             catch(Exception e){
                 e.printStackTrace();
             }
-            this.disableHooks = false;
+        }
+    }
+
+    @Override
+    public String put(String key, String value) {
+        String res = super.put(key, value);
+        this.triggerChange(key, value);
+        return res;
+    }
+
+    @Override
+    public String remove(Object key) {
+        String res = super.remove(key);
+        this.triggerChange(key.toString(), null);
+        return res;
+    }
+
+    @Override
+    public void clear() {
+        Collection<String> oldKeys = new ArrayList<>(this.keySet());
+        super.clear();
+        for (String key : oldKeys) {
+            this.triggerChange(key, null);
         }
     }
 
