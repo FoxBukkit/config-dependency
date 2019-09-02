@@ -17,6 +17,8 @@
 package com.foxelbox.dependencies.config;
 
 import java.io.*;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -64,12 +66,12 @@ public class Configuration extends ConcurrentHashMap<String, String> {
         this.save();
     }
 
-    public FileReader makeReader(String file) throws FileNotFoundException {
-        return new FileReader(new File(dataFolder, file));
+    public FileReader makeReader(String file) throws IOException {
+        return new FileReader(new File(dataFolder, file), StandardCharsets.UTF_8);
     }
 
     public FileWriter makeWriter(String file) throws IOException {
-        return new FileWriter(new File(dataFolder, file));
+        return new FileWriter(new File(dataFolder, file), StandardCharsets.UTF_8);
     }
 
     public void load() {
