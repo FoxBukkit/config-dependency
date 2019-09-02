@@ -25,6 +25,7 @@ public class Configuration extends ConcurrentHashMap<String, String> {
     private final String dataFile;
     private final Object lockObject;
     private final Set<OnChangeHook> hooks;
+    private boolean isLoading = true;
 
     public Configuration(File dataFolder) {
         this(dataFolder, "config.txt");
@@ -73,6 +74,7 @@ public class Configuration extends ConcurrentHashMap<String, String> {
 
     public void load() {
         synchronized (lockObject) {
+            this.isLoading = true;
             this.clear();
             try {
                 BufferedReader stream = new BufferedReader(makeReader(dataFile));
@@ -88,11 +90,16 @@ public class Configuration extends ConcurrentHashMap<String, String> {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+            this.isLoading = false;
         }
     }
 
     public void save() {
         synchronized (lockObject) {
+            if (isLoading) {
+                return;
+            }
+
             try {
                 PrintWriter stream = new PrintWriter(makeWriter(dataFile));
                 for (Map.Entry<String, String> configEntry : this.entrySet()) {
