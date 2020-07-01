@@ -61,8 +61,8 @@
 	</build>
     <distributionManagement>
         <repository>
-            <id>foxelbox-configdependency-repo</id>
-            <url>https://maven.pkg.github.com/foxelbox/configdependency</url>
+            <id>foxelbox-repo</id>
+            <url>https://maven.pkg.github.com/foxelbox/packages</url>
         </repository>
     </distributionManagement>
 </project>
