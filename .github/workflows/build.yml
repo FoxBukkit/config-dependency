@@ -9,4 +9,4 @@ jobs:
     steps:
       -  uses: foxbukkit/packages/.github/actions/mvnbuild@main
          with:
-           token: ${{ github.token }}
+           token: ${{ secrets.PACKAGE_PUBLISH_PAT }}
