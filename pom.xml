@@ -44,8 +44,10 @@
                     </properties>
                     <excludes>
                         <exclude>settings.xml</exclude>
+                        <exclude>toolchains.xml</exclude>
                         <exclude>.github/**</exclude>
                         <exclude>**/README</exclude>
+                        <exclude>**/README.md</exclude>
                         <exclude>src/test/resources/**</exclude>
                         <exclude>src/main/resources/**</exclude>
                     </excludes>
